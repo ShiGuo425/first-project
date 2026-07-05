@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Our Days</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <img class="hero-image" src="assets/memory-hero.png" alt="Warm table with photos and a notebook" />
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <div class="counter-panel">
+            <p class="eyebrow">Our time together</p>
+            <h1><span id="daysTogether">0</span> days</h1>
+            <p id="sinceText" class="since-text">Choose your first day together.</p>
+            <label class="date-control">
+              <span>First day</span>
+              <input id="startDate" type="date" />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <form id="memoryForm" class="editor" autocomplete="off">
+          <div class="field-row">
+            <label>
+              <span>Moment title</span>
+              <input id="memoryTitle" type="text" maxlength="60" placeholder="A small perfect afternoon" required />
+            </label>
+            <label>
+              <span>Date</span>
+              <input id="memoryDate" type="date" required />
+            </label>
+          </div>
+
+          <label>
+            <span>What happened</span>
+            <textarea id="memoryText" maxlength="900" placeholder="Write the little details you never want to forget..." required></textarea>
+          </label>
+
+          <div class="upload-row">
+            <label class="upload-box">
+              <input id="photoInput" type="file" accept="image/*" />
+              <span class="upload-icon">+</span>
+              <span>Add a picture</span>
+            </label>
+            <div id="photoPreview" class="photo-preview" aria-live="polite">
+              <span>No picture selected</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" id="clearForm" class="secondary-button">Clear</button>
+            <button type="submit" class="primary-button">Save moment</button>
+          </div>
+        </form>
+
+        <section class="timeline-section" aria-labelledby="timelineTitle">
+          <div class="section-heading">
+            <p class="eyebrow">Precious moments</p>
+            <h2 id="timelineTitle">Memory timeline</h2>
+          </div>
+          <div id="emptyState" class="empty-state">
+            <p>Your saved pictures and notes will appear here.</p>
+          </div>
+          <div id="timeline" class="timeline"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
