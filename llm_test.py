@@ -11,7 +11,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Simple LLM test runner.")
     parser.add_argument("--prompt", required=True, help="User prompt to send to the model.")
     parser.add_argument("--system", default="You are a helpful assistant.", help="System message.")
-    parser.add_argument("--model", default=os.getenv("LLM_MODEL", "gpt-4.1-mini"), help="Model name.")
+    parser.add_argument("--model", default=os.getenv("LLM_MODEL", "gpt-4o-mini"), help="Model name.")
     parser.add_argument("--dry-run", action="store_true", help="Print request payload only.")
     return parser.parse_args()
 
