@@ -12,6 +12,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prompt", required=True, help="User prompt to send to the model.")
     parser.add_argument("--system", default="You are a helpful assistant.", help="System message.")
     parser.add_argument("--model", default=os.getenv("LLM_MODEL", "gpt-4o-mini"), help="Model name.")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=int(os.getenv("LLM_TIMEOUT", "60")),
+        help="HTTP timeout in seconds.",
+    )
     parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Print request payload only.")
     return parser.parse_args()
 
@@ -41,14 +47,14 @@ def main() -> int:
         f"{base_url}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={
-            "Authorization": "Bearer " + api_key,
+            "Authorization": f"{'Bearer'} {api_key}",
             "Content-Type": "application/json",
         },
         method="POST",
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=args.timeout) as response:
             body = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as err:
         error_body = err.read().decode("utf-8", errors="replace")

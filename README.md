@@ -21,6 +21,7 @@ python llm_test.py --prompt "Hello, who are you?"
 
 - `OPENAI_BASE_URL` (default: `https://api.openai.com/v1`)
 - `LLM_MODEL` (default: `gpt-4o-mini`)
+- `LLM_TIMEOUT` (default: `60`)
 
 You can also pass a model directly:
 
