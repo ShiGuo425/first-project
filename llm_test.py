@@ -43,11 +43,12 @@ def main() -> int:
         print("Error: OPENAI_API_KEY is not set.", file=sys.stderr)
         return 1
 
+    bearer_prefix = "Bearer"
     request = urllib.request.Request(
         f"{base_url}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={
-            "Authorization": "{} {}".format("Bearer", api_key),
+            "Authorization": f"{bearer_prefix} {api_key}",
             "Content-Type": "application/json",
         },
         method="POST",
