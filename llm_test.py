@@ -47,7 +47,7 @@ def main() -> int:
         f"{base_url}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={
-            "Authorization": f"{'Bearer'} {api_key}",
+            "Authorization": "{} {}".format("Bearer", api_key),
             "Content-Type": "application/json",
         },
         method="POST",
