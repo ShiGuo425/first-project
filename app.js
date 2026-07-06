@@ -456,14 +456,25 @@ function renderMaps() {
   mapMarkers.forEach((marker) => marker.remove());
   mapMarkers = [];
 
+  const icon = L.divIcon({
+    className: "",
+    html: '<div class="flag-marker"><span>♥</span></div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -28]
+  });
+
   state.places.forEach((place) => {
     [chinaMap, globalMap].forEach((map) => {
-      const marker = L.marker([place.lat, place.lng])
+      const marker = L.marker([place.lat, place.lng], { icon })
         .addTo(map)
         .bindPopup(`<strong>${place.city}</strong><br>${formatDate(place.visitedDate)}`);
       mapMarkers.push(marker);
     });
   });
+
+  chinaMap.invalidateSize();
+  globalMap.invalidateSize();
 }
 
 async function loadCloudState() {
@@ -472,39 +483,63 @@ async function loadCloudState() {
     return;
   }
 
-  const [{ data: settings, error: settingsError }, memoriesResult, wishesResult, plansResult, placesResult] =
-    await Promise.all([
-      supabaseClient.from("couple_settings").select("start_date").eq("id", "main").maybeSingle(),
-      supabaseClient.from("memories").select("*").order("memory_date", { ascending: false }).order("created_at", { ascending: false }),
-      supabaseClient.from("wishlist").select("*").order("created_at", { ascending: false }),
-      supabaseClient.from("year_schedule").select("*").order("plan_date", { ascending: true }),
-      supabaseClient
-        .from("places")
-        .select("*, place_photos(*)")
-        .order("visited_date", { ascending: false })
-        .order("created_at", { ascending: false })
-    ]);
-
-  if (settingsError || memoriesResult.error || wishesResult.error || plansResult.error || placesResult.error) {
-    showMessage("Run the latest supabase-setup.sql in Supabase first, then refresh this page.");
-    return;
+  const settingsResult = await supabaseClient.from("couple_settings").select("start_date").eq("id", "main").maybeSingle();
+  if (!settingsResult.error) {
+    state.startDate = settingsResult.data?.start_date || "";
   }
 
-  state.startDate = settings?.start_date || "";
-  state.memories = (memoriesResult.data || []).map(mapMemory);
-  state.wishes = (wishesResult.data || []).map((row) => ({
-    id: row.id,
-    title: row.title,
-    note: row.note,
-    done: row.is_done
-  }));
-  state.plans = (plansResult.data || []).map((row) => ({
-    id: row.id,
-    title: row.title,
-    date: row.plan_date,
-    note: row.note
-  }));
-  state.places = (placesResult.data || []).map(mapPlace);
+  const memoriesResult = await supabaseClient
+    .from("memories")
+    .select("*")
+    .order("memory_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (!memoriesResult.error) {
+    state.memories = (memoriesResult.data || []).map(mapMemory);
+  }
+
+  const wishesResult = await supabaseClient.from("wishlist").select("*").order("created_at", { ascending: false });
+  if (!wishesResult.error) {
+    state.wishes = (wishesResult.data || []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      note: row.note,
+      done: row.is_done
+    }));
+  }
+
+  const plansResult = await supabaseClient.from("year_schedule").select("*").order("plan_date", { ascending: true });
+  if (!plansResult.error) {
+    state.plans = (plansResult.data || []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      date: row.plan_date,
+      note: row.note
+    }));
+  }
+
+  const placesResult = await supabaseClient.from("places").select("*").order("visited_date", { ascending: false }).order("created_at", { ascending: false });
+  const photosResult = await supabaseClient.from("place_photos").select("*").order("created_at", { ascending: true });
+  if (!placesResult.error) {
+    const photosByPlace = new Map();
+    if (!photosResult.error) {
+      (photosResult.data || []).forEach((photo) => {
+        const list = photosByPlace.get(photo.place_id) || [];
+        list.push({
+          id: photo.id,
+          photoUrl: photo.photo_url,
+          takenAt: photo.taken_at
+        });
+        photosByPlace.set(photo.place_id, list);
+      });
+    }
+
+    state.places = (placesResult.data || []).map((row) =>
+      mapPlace({
+        ...row,
+        place_photos: photosByPlace.get(row.id) || []
+      })
+    );
+  }
 
   startDateInput.value = state.startDate;
   updateCounter();
@@ -513,6 +548,10 @@ async function loadCloudState() {
   renderSchedule();
   renderPlaces();
   renderMaps();
+
+  if (wishesResult.error || plansResult.error || placesResult.error || photosResult.error) {
+    showMessage("Old memories are loaded. Run the latest supabase-setup.sql once to enable wish list, schedule, and maps.");
+  }
 }
 
 async function saveStartDate(value) {

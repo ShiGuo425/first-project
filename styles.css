@@ -647,6 +647,26 @@ button {
   background: #e8efe9;
 }
 
+.flag-marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
+  border-radius: 999px 999px 999px 4px;
+  background: var(--rose-dark);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(63, 35, 42, 0.28);
+  transform: rotate(-45deg);
+}
+
+.flag-marker span {
+  display: block;
+  transform: rotate(45deg);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
 .multi-preview {
   grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
   gap: 8px;
