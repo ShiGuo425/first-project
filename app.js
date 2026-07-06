@@ -1,6 +1,9 @@
 const SUPABASE_URL = "https://lxadqowrypxijzcojycd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_FxuOkvz6k8RHidtEbYJsHQ_QaofQDZ9";
 const STORAGE_BUCKET = "memories";
+const AUTH_ACCOUNT = "hyh";
+const AUTH_HASH = "9a50326120f21735841d567b22e0de6dc6d80d7ca71f8bbffb871cf5d9752945";
+const AUTH_STORAGE_KEY = "our-days-authenticated";
 
 const state = {
   startDate: "",
@@ -14,6 +17,11 @@ const supabaseClient =
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
     : null;
 
+const loginForm = document.querySelector("#loginForm");
+const accountInput = document.querySelector("#accountInput");
+const passwordInput = document.querySelector("#passwordInput");
+const loginError = document.querySelector("#loginError");
+const logoutButton = document.querySelector("#logoutButton");
 const startDateInput = document.querySelector("#startDate");
 const daysTogether = document.querySelector("#daysTogether");
 const sinceText = document.querySelector("#sinceText");
@@ -26,6 +34,40 @@ const photoPreview = document.querySelector("#photoPreview");
 const clearForm = document.querySelector("#clearForm");
 const timeline = document.querySelector("#timeline");
 const emptyState = document.querySelector("#emptyState");
+let refreshTimer = null;
+
+function bytesToHex(buffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function hashCredentials(account, password) {
+  const encoder = new TextEncoder();
+  const digest = await window.crypto.subtle.digest("SHA-256", encoder.encode(`${account}:${password}`));
+  return bytesToHex(digest);
+}
+
+function unlockApp() {
+  localStorage.setItem(AUTH_STORAGE_KEY, "true");
+  document.body.classList.remove("is-locked");
+  loginError.textContent = "";
+  loadCloudState();
+  if (!refreshTimer) {
+    refreshTimer = window.setInterval(loadCloudState, 30000);
+  }
+}
+
+function lockApp() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  document.body.classList.add("is-locked");
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+  passwordInput.value = "";
+  accountInput.focus();
+}
 
 function setBusy(isBusy) {
   memoryForm.querySelectorAll("button, input, textarea").forEach((element) => {
@@ -335,8 +377,29 @@ memoryForm.addEventListener("submit", async (event) => {
 
 clearForm.addEventListener("click", resetForm);
 
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const account = accountInput.value.trim();
+  const password = passwordInput.value;
+  const hash = await hashCredentials(account, password);
+
+  if (account === AUTH_ACCOUNT && hash === AUTH_HASH) {
+    unlockApp();
+    return;
+  }
+
+  loginError.textContent = "Wrong account number or password.";
+  passwordInput.value = "";
+  passwordInput.focus();
+});
+
+logoutButton.addEventListener("click", lockApp);
+
 memoryDate.value = new Date().toISOString().slice(0, 10);
 updateCounter();
 renderPreview("");
-loadCloudState();
-window.setInterval(loadCloudState, 30000);
+if (localStorage.getItem(AUTH_STORAGE_KEY) === "true") {
+  unlockApp();
+} else {
+  lockApp();
+}

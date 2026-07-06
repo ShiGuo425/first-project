@@ -6,7 +6,27 @@
     <title>Our Days</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="is-locked">
+    <section id="loginScreen" class="login-screen" aria-labelledby="loginTitle">
+      <img class="login-bg" src="assets/memory-hero.png" alt="" />
+      <div class="login-overlay"></div>
+      <form id="loginForm" class="login-panel" autocomplete="off">
+        <p class="eyebrow">Private journal</p>
+        <h1 id="loginTitle">Our Days</h1>
+        <p class="login-copy">Enter the account and password to open this shared memory space.</p>
+        <label>
+          <span>Account number</span>
+          <input id="accountInput" type="text" inputmode="text" autocomplete="username" required />
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="passwordInput" type="password" autocomplete="current-password" required />
+        </label>
+        <p id="loginError" class="login-error" role="alert" aria-live="polite"></p>
+        <button type="submit" class="primary-button">Enter</button>
+      </form>
+    </section>
+
     <main class="app-shell">
       <section class="hero">
         <img class="hero-image" src="assets/memory-hero.png" alt="Warm table with photos and a notebook" />
@@ -20,6 +40,7 @@
               <span>First day</span>
               <input id="startDate" type="date" />
             </label>
+            <button type="button" id="logoutButton" class="logout-button">Log out</button>
           </div>
         </div>
       </section>

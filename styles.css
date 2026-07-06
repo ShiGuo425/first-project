@@ -24,10 +24,100 @@ body {
   background: var(--paper);
 }
 
+body.is-locked {
+  overflow: hidden;
+}
+
 button,
 input,
 textarea {
   font: inherit;
+}
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+  background: #2b2826;
+}
+
+body:not(.is-locked) .login-screen {
+  display: none;
+}
+
+body.is-locked .app-shell {
+  display: none;
+}
+
+.login-bg,
+.login-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.login-bg {
+  object-fit: cover;
+}
+
+.login-overlay {
+  background: linear-gradient(135deg, rgba(29, 26, 28, 0.76), rgba(79, 54, 54, 0.42));
+}
+
+.login-panel {
+  position: relative;
+  width: min(420px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 8px;
+  background: rgba(255, 250, 247, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.login-panel h1 {
+  font-size: 3rem;
+  line-height: 0.95;
+  color: var(--ink);
+}
+
+.login-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.login-panel label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.login-panel input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  outline: none;
+}
+
+.login-error {
+  min-height: 20px;
+  margin: 0;
+  color: var(--rose-dark);
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .app-shell {
@@ -130,6 +220,16 @@ h2 {
   padding: 0 14px;
   border-color: rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.94);
+}
+
+.logout-button {
+  width: fit-content;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  text-shadow: inherit;
 }
 
 .workspace {
