@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Our Days</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="is-locked">
@@ -91,9 +92,120 @@
           <div id="timeline" class="timeline"></div>
         </section>
       </section>
+
+      <section class="planning-grid">
+        <section class="tool-panel" aria-labelledby="wishlistTitle">
+          <div class="section-heading">
+            <p class="eyebrow">Dream together</p>
+            <h2 id="wishlistTitle">Wish list</h2>
+          </div>
+          <form id="wishlistForm" class="compact-form" autocomplete="off">
+            <label>
+              <span>Wish</span>
+              <input id="wishTitle" type="text" maxlength="80" placeholder="Watch sunrise by the sea" required />
+            </label>
+            <label>
+              <span>Note</span>
+              <textarea id="wishNote" maxlength="360" placeholder="Why this matters, ideas, budget, or tiny details"></textarea>
+            </label>
+            <button type="submit" class="primary-button">Add wish</button>
+          </form>
+          <div id="wishlist" class="mini-list"></div>
+        </section>
+
+        <section class="tool-panel" aria-labelledby="scheduleTitle">
+          <div class="section-heading">
+            <p class="eyebrow">This year</p>
+            <h2 id="scheduleTitle">Schedule</h2>
+          </div>
+          <form id="scheduleForm" class="compact-form" autocomplete="off">
+            <div class="field-row">
+              <label>
+                <span>Plan</span>
+                <input id="scheduleTitleInput" type="text" maxlength="80" placeholder="Anniversary dinner" required />
+              </label>
+              <label>
+                <span>Date</span>
+                <input id="scheduleDate" type="date" required />
+              </label>
+            </div>
+            <label>
+              <span>Details</span>
+              <textarea id="scheduleNote" maxlength="420" placeholder="Reservation, place, gift idea, or reminder"></textarea>
+            </label>
+            <button type="submit" class="primary-button">Add plan</button>
+          </form>
+          <div id="scheduleList" class="mini-list"></div>
+        </section>
+      </section>
+
+      <section class="map-section" aria-labelledby="mapTitle">
+        <div class="section-heading">
+          <p class="eyebrow">Places we have been</p>
+          <h2 id="mapTitle">Our travel map</h2>
+        </div>
+
+        <form id="placeForm" class="editor map-editor" autocomplete="off">
+          <div class="field-row">
+            <label>
+              <span>City</span>
+              <input id="placeCity" type="text" maxlength="80" placeholder="Shanghai" required />
+            </label>
+            <label>
+              <span>Date</span>
+              <input id="placeDate" type="date" required />
+            </label>
+          </div>
+          <div class="coords-row">
+            <label>
+              <span>Latitude</span>
+              <input id="placeLat" type="number" step="0.000001" placeholder="31.2304" required />
+            </label>
+            <label>
+              <span>Longitude</span>
+              <input id="placeLng" type="number" step="0.000001" placeholder="121.4737" required />
+            </label>
+          </div>
+          <label>
+            <span>Time signature and story</span>
+            <textarea id="placeNote" maxlength="700" placeholder="When you went there, what happened, and what you want to remember"></textarea>
+          </label>
+          <div class="upload-row">
+            <label class="upload-box">
+              <input id="placePhotos" type="file" accept="image/*" multiple />
+              <span class="upload-icon">+</span>
+              <span>Add picture bundle</span>
+            </label>
+            <div id="placePhotoPreview" class="photo-preview multi-preview" aria-live="polite">
+              <span>No pictures selected</span>
+            </div>
+          </div>
+          <button type="submit" class="primary-button">Pin this place</button>
+        </form>
+
+        <div class="map-grid">
+          <div class="map-card">
+            <div class="map-card-heading">
+              <h3>China map</h3>
+              <p>Click the map to fill latitude and longitude.</p>
+            </div>
+            <div id="chinaMap" class="map-canvas"></div>
+          </div>
+          <div class="map-card">
+            <div class="map-card-heading">
+              <h3>Global map</h3>
+              <p>Every pinned city appears here too.</p>
+            </div>
+            <div id="globalMap" class="map-canvas"></div>
+          </div>
+        </div>
+
+        <div id="placesList" class="places-list"></div>
+      </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

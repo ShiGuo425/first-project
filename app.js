@@ -8,8 +8,12 @@ const AUTH_STORAGE_KEY = "our-days-authenticated";
 const state = {
   startDate: "",
   memories: [],
+  wishes: [],
+  plans: [],
+  places: [],
   draftPhoto: "",
-  draftBlob: null
+  draftBlob: null,
+  placeDraftPhotos: []
 };
 
 const supabaseClient =
@@ -34,7 +38,29 @@ const photoPreview = document.querySelector("#photoPreview");
 const clearForm = document.querySelector("#clearForm");
 const timeline = document.querySelector("#timeline");
 const emptyState = document.querySelector("#emptyState");
+const wishlistForm = document.querySelector("#wishlistForm");
+const wishTitle = document.querySelector("#wishTitle");
+const wishNote = document.querySelector("#wishNote");
+const wishlist = document.querySelector("#wishlist");
+const scheduleForm = document.querySelector("#scheduleForm");
+const scheduleTitleInput = document.querySelector("#scheduleTitleInput");
+const scheduleDate = document.querySelector("#scheduleDate");
+const scheduleNote = document.querySelector("#scheduleNote");
+const scheduleList = document.querySelector("#scheduleList");
+const placeForm = document.querySelector("#placeForm");
+const placeCity = document.querySelector("#placeCity");
+const placeDate = document.querySelector("#placeDate");
+const placeLat = document.querySelector("#placeLat");
+const placeLng = document.querySelector("#placeLng");
+const placeNote = document.querySelector("#placeNote");
+const placePhotos = document.querySelector("#placePhotos");
+const placePhotoPreview = document.querySelector("#placePhotoPreview");
+const placesList = document.querySelector("#placesList");
+
 let refreshTimer = null;
+let chinaMap = null;
+let globalMap = null;
+let mapMarkers = [];
 
 function bytesToHex(buffer) {
   return Array.from(new Uint8Array(buffer))
@@ -52,6 +78,7 @@ function unlockApp() {
   localStorage.setItem(AUTH_STORAGE_KEY, "true");
   document.body.classList.remove("is-locked");
   loginError.textContent = "";
+  initMaps();
   loadCloudState();
   if (!refreshTimer) {
     refreshTimer = window.setInterval(loadCloudState, 30000);
@@ -69,8 +96,8 @@ function lockApp() {
   accountInput.focus();
 }
 
-function setBusy(isBusy) {
-  memoryForm.querySelectorAll("button, input, textarea").forEach((element) => {
+function setBusy(form, isBusy) {
+  form.querySelectorAll("button, input, textarea").forEach((element) => {
     element.disabled = isBusy;
   });
 }
@@ -113,19 +140,45 @@ function updateCounter() {
   sinceText.textContent = `Together since ${formatDate(state.startDate)}.`;
 }
 
-function renderPreview(src) {
-  photoPreview.innerHTML = "";
+function renderPreview(container, src, emptyText) {
+  container.innerHTML = "";
   if (!src) {
     const empty = document.createElement("span");
-    empty.textContent = "No picture selected";
-    photoPreview.append(empty);
+    empty.textContent = emptyText;
+    container.append(empty);
     return;
   }
 
   const image = document.createElement("img");
   image.src = src;
-  image.alt = "Selected memory preview";
-  photoPreview.append(image);
+  image.alt = "Selected preview";
+  container.append(image);
+}
+
+function renderPlacePreview() {
+  placePhotoPreview.innerHTML = "";
+  if (state.placeDraftPhotos.length === 0) {
+    const empty = document.createElement("span");
+    empty.textContent = "No pictures selected";
+    placePhotoPreview.append(empty);
+    return;
+  }
+
+  state.placeDraftPhotos.forEach((photo) => {
+    const image = document.createElement("img");
+    image.src = photo.preview;
+    image.alt = "Selected place photo";
+    placePhotoPreview.append(image);
+  });
+}
+
+function createActionButton(label, className, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  button.addEventListener("click", onClick);
+  return button;
 }
 
 function renderTimeline() {
@@ -166,13 +219,9 @@ function renderTimeline() {
       title.className = "memory-title";
       title.textContent = memory.title;
 
-      const remove = document.createElement("button");
-      remove.className = "delete-button";
-      remove.type = "button";
+      const remove = createActionButton("x", "delete-button", () => deleteMemory(memory.id));
       remove.title = "Delete memory";
       remove.setAttribute("aria-label", `Delete ${memory.title}`);
-      remove.textContent = "x";
-      remove.addEventListener("click", () => deleteMemory(memory.id));
 
       const text = document.createElement("p");
       text.className = "memory-text";
@@ -185,12 +234,126 @@ function renderTimeline() {
     });
 }
 
-function resetForm() {
+function renderWishlist() {
+  wishlist.innerHTML = "";
+  state.wishes.forEach((wish) => {
+    const item = document.createElement("article");
+    item.className = `mini-item${wish.done ? " is-done" : ""}`;
+
+    const header = document.createElement("div");
+    header.className = "mini-item-header";
+
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("h3");
+    title.className = "mini-item-title";
+    title.textContent = wish.title;
+    const meta = document.createElement("p");
+    meta.className = "mini-meta";
+    meta.textContent = wish.done ? "Completed" : "Waiting for us";
+    titleWrap.append(title, meta);
+
+    const actions = document.createElement("div");
+    actions.className = "mini-actions";
+    actions.append(
+      createActionButton(wish.done ? "Undo" : "Done", "tiny-button done-button", () => toggleWish(wish.id, !wish.done)),
+      createActionButton("x", "tiny-button", () => deleteRow("wishlist", wish.id, loadCloudState))
+    );
+
+    const note = document.createElement("p");
+    note.className = "mini-note";
+    note.textContent = wish.note || "";
+
+    header.append(titleWrap, actions);
+    item.append(header);
+    if (wish.note) item.append(note);
+    wishlist.append(item);
+  });
+}
+
+function renderSchedule() {
+  scheduleList.innerHTML = "";
+  state.plans.forEach((plan) => {
+    const item = document.createElement("article");
+    item.className = "mini-item";
+
+    const header = document.createElement("div");
+    header.className = "mini-item-header";
+
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("h3");
+    title.className = "mini-item-title";
+    title.textContent = plan.title;
+    const meta = document.createElement("p");
+    meta.className = "mini-meta";
+    meta.textContent = formatDate(plan.date);
+    titleWrap.append(title, meta);
+
+    const remove = createActionButton("x", "tiny-button", () => deleteRow("year_schedule", plan.id, loadCloudState));
+    const note = document.createElement("p");
+    note.className = "mini-note";
+    note.textContent = plan.note || "";
+
+    header.append(titleWrap, remove);
+    item.append(header);
+    if (plan.note) item.append(note);
+    scheduleList.append(item);
+  });
+}
+
+function renderPlaces() {
+  placesList.innerHTML = "";
+  state.places.forEach((place) => {
+    const card = document.createElement("article");
+    card.className = "place-card";
+
+    const header = document.createElement("div");
+    header.className = "place-header";
+
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("h3");
+    title.className = "place-title";
+    title.textContent = place.city;
+    const meta = document.createElement("p");
+    meta.className = "place-meta";
+    meta.textContent = `${formatDate(place.visitedDate)} · ${Number(place.lat).toFixed(4)}, ${Number(place.lng).toFixed(4)}`;
+    titleWrap.append(title, meta);
+
+    const remove = createActionButton("x", "tiny-button", () => deleteRow("places", place.id, loadCloudState));
+    header.append(titleWrap, remove);
+
+    const note = document.createElement("p");
+    note.className = "place-note";
+    note.textContent = place.note || "";
+
+    const gallery = document.createElement("div");
+    gallery.className = "place-gallery";
+    place.photos.forEach((photo) => {
+      const image = document.createElement("img");
+      image.src = photo.photoUrl;
+      image.alt = `${place.city} memory`;
+      gallery.append(image);
+    });
+
+    card.append(header);
+    if (place.note) card.append(note);
+    if (place.photos.length > 0) card.append(gallery);
+    placesList.append(card);
+  });
+}
+
+function resetMemoryForm() {
   memoryForm.reset();
   memoryDate.value = new Date().toISOString().slice(0, 10);
   state.draftPhoto = "";
   state.draftBlob = null;
-  renderPreview("");
+  renderPreview(photoPreview, "", "No picture selected");
+}
+
+function resetPlaceForm() {
+  placeForm.reset();
+  placeDate.value = new Date().toISOString().slice(0, 10);
+  state.placeDraftPhotos = [];
+  renderPlacePreview();
 }
 
 function createId() {
@@ -247,39 +410,109 @@ function mapMemory(row) {
   };
 }
 
+function mapPlace(row) {
+  return {
+    id: row.id,
+    city: row.city,
+    visitedDate: row.visited_date,
+    note: row.note,
+    lat: Number(row.latitude),
+    lng: Number(row.longitude),
+    photos: (row.place_photos || []).map((photo) => ({
+      id: photo.id,
+      photoUrl: photo.photo_url,
+      takenAt: photo.taken_at
+    }))
+  };
+}
+
+function initMaps() {
+  if (!window.L || chinaMap || globalMap) return;
+
+  chinaMap = L.map("chinaMap").setView([35.8617, 104.1954], 4);
+  globalMap = L.map("globalMap").setView([20, 0], 2);
+
+  [chinaMap, globalMap].forEach((map) => {
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    map.on("click", (event) => {
+      placeLat.value = event.latlng.lat.toFixed(6);
+      placeLng.value = event.latlng.lng.toFixed(6);
+    });
+  });
+
+  window.setTimeout(() => {
+    chinaMap.invalidateSize();
+    globalMap.invalidateSize();
+  }, 250);
+}
+
+function renderMaps() {
+  if (!chinaMap || !globalMap || !window.L) return;
+
+  mapMarkers.forEach((marker) => marker.remove());
+  mapMarkers = [];
+
+  state.places.forEach((place) => {
+    [chinaMap, globalMap].forEach((map) => {
+      const marker = L.marker([place.lat, place.lng])
+        .addTo(map)
+        .bindPopup(`<strong>${place.city}</strong><br>${formatDate(place.visitedDate)}`);
+      mapMarkers.push(marker);
+    });
+  });
+}
+
 async function loadCloudState() {
   if (!supabaseClient) {
     showMessage("Supabase is not connected yet.");
     return;
   }
 
-  const { data: settings, error: settingsError } = await supabaseClient
-    .from("couple_settings")
-    .select("start_date")
-    .eq("id", "main")
-    .maybeSingle();
+  const [{ data: settings, error: settingsError }, memoriesResult, wishesResult, plansResult, placesResult] =
+    await Promise.all([
+      supabaseClient.from("couple_settings").select("start_date").eq("id", "main").maybeSingle(),
+      supabaseClient.from("memories").select("*").order("memory_date", { ascending: false }).order("created_at", { ascending: false }),
+      supabaseClient.from("wishlist").select("*").order("created_at", { ascending: false }),
+      supabaseClient.from("year_schedule").select("*").order("plan_date", { ascending: true }),
+      supabaseClient
+        .from("places")
+        .select("*, place_photos(*)")
+        .order("visited_date", { ascending: false })
+        .order("created_at", { ascending: false })
+    ]);
 
-  if (settingsError) {
-    showMessage("Run supabase-setup.sql in Supabase first, then refresh this page.");
-    return;
-  }
-
-  const { data: memories, error: memoriesError } = await supabaseClient
-    .from("memories")
-    .select("*")
-    .order("memory_date", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  if (memoriesError) {
-    showMessage("Could not load memories from Supabase. Check the table policies.");
+  if (settingsError || memoriesResult.error || wishesResult.error || plansResult.error || placesResult.error) {
+    showMessage("Run the latest supabase-setup.sql in Supabase first, then refresh this page.");
     return;
   }
 
   state.startDate = settings?.start_date || "";
-  state.memories = (memories || []).map(mapMemory);
+  state.memories = (memoriesResult.data || []).map(mapMemory);
+  state.wishes = (wishesResult.data || []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    note: row.note,
+    done: row.is_done
+  }));
+  state.plans = (plansResult.data || []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    date: row.plan_date,
+    note: row.note
+  }));
+  state.places = (placesResult.data || []).map(mapPlace);
+
   startDateInput.value = state.startDate;
   updateCounter();
   renderTimeline();
+  renderWishlist();
+  renderSchedule();
+  renderPlaces();
+  renderMaps();
 }
 
 async function saveStartDate(value) {
@@ -297,10 +530,10 @@ async function saveStartDate(value) {
   }
 }
 
-async function uploadPhoto(blob) {
+async function uploadPhoto(blob, folder = "memories") {
   if (!blob) return "";
 
-  const path = `${Date.now()}-${createId()}.jpg`;
+  const path = `${folder}/${Date.now()}-${createId()}.jpg`;
   const { error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(path, blob, {
     contentType: "image/jpeg",
     upsert: false
@@ -313,15 +546,26 @@ async function uploadPhoto(blob) {
   return supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-async function deleteMemory(id) {
-  const { error } = await supabaseClient.from("memories").delete().eq("id", id);
+async function deleteRow(table, id, afterDelete) {
+  const { error } = await supabaseClient.from(table).delete().eq("id", id);
   if (error) {
-    showMessage("Could not delete this memory. Check Supabase policies.");
+    showMessage("Could not delete this item. Check Supabase policies.");
     return;
   }
+  await afterDelete();
+}
 
-  state.memories = state.memories.filter((memory) => memory.id !== id);
-  renderTimeline();
+async function deleteMemory(id) {
+  await deleteRow("memories", id, loadCloudState);
+}
+
+async function toggleWish(id, isDone) {
+  const { error } = await supabaseClient.from("wishlist").update({ is_done: isDone }).eq("id", id);
+  if (error) {
+    showMessage("Could not update this wish. Check Supabase policies.");
+    return;
+  }
+  await loadCloudState();
 }
 
 startDateInput.addEventListener("change", () => {
@@ -333,14 +577,20 @@ photoInput.addEventListener("change", async () => {
   if (!file) {
     state.draftPhoto = "";
     state.draftBlob = null;
-    renderPreview("");
+    renderPreview(photoPreview, "", "No picture selected");
     return;
   }
 
   const resized = await resizeImage(file);
   state.draftPhoto = resized.preview;
   state.draftBlob = resized.blob;
-  renderPreview(state.draftPhoto);
+  renderPreview(photoPreview, state.draftPhoto, "No picture selected");
+});
+
+placePhotos.addEventListener("change", async () => {
+  const files = Array.from(placePhotos.files || []).slice(0, 12);
+  state.placeDraftPhotos = await Promise.all(files.map(resizeImage));
+  renderPlacePreview();
 });
 
 memoryForm.addEventListener("submit", async (event) => {
@@ -352,7 +602,7 @@ memoryForm.addEventListener("submit", async (event) => {
 
   if (!title || !date || !text || !supabaseClient) return;
 
-  setBusy(true);
+  setBusy(memoryForm, true);
   try {
     const photoUrl = await uploadPhoto(state.draftBlob);
     const { error } = await supabaseClient.from("memories").insert({
@@ -362,20 +612,105 @@ memoryForm.addEventListener("submit", async (event) => {
       photo_url: photoUrl || null
     });
 
-    if (error) {
-      throw new Error("Could not save this memory. Check Supabase table policies.");
-    }
+    if (error) throw new Error("Could not save this memory. Check Supabase table policies.");
 
-    resetForm();
+    resetMemoryForm();
     await loadCloudState();
   } catch (error) {
     showMessage(error.message);
   } finally {
-    setBusy(false);
+    setBusy(memoryForm, false);
   }
 });
 
-clearForm.addEventListener("click", resetForm);
+wishlistForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const title = wishTitle.value.trim();
+  const note = wishNote.value.trim();
+  if (!title) return;
+
+  const { error } = await supabaseClient.from("wishlist").insert({ title, note });
+  if (error) {
+    showMessage("Could not save this wish. Run the latest Supabase setup.");
+    return;
+  }
+
+  wishlistForm.reset();
+  await loadCloudState();
+});
+
+scheduleForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const title = scheduleTitleInput.value.trim();
+  const date = scheduleDate.value;
+  const note = scheduleNote.value.trim();
+  if (!title || !date) return;
+
+  const { error } = await supabaseClient.from("year_schedule").insert({
+    title,
+    plan_date: date,
+    note
+  });
+  if (error) {
+    showMessage("Could not save this plan. Run the latest Supabase setup.");
+    return;
+  }
+
+  scheduleForm.reset();
+  scheduleDate.value = new Date().toISOString().slice(0, 10);
+  await loadCloudState();
+});
+
+placeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const city = placeCity.value.trim();
+  const visitedDate = placeDate.value;
+  const latitude = Number(placeLat.value);
+  const longitude = Number(placeLng.value);
+  const note = placeNote.value.trim();
+  if (!city || !visitedDate || Number.isNaN(latitude) || Number.isNaN(longitude)) return;
+
+  setBusy(placeForm, true);
+  try {
+    const { data: place, error: placeError } = await supabaseClient
+      .from("places")
+      .insert({
+        city,
+        visited_date: visitedDate,
+        latitude,
+        longitude,
+        note
+      })
+      .select("id")
+      .single();
+
+    if (placeError) throw new Error("Could not save this place. Run the latest Supabase setup.");
+
+    const uploadedPhotos = [];
+    for (const photo of state.placeDraftPhotos) {
+      const photoUrl = await uploadPhoto(photo.blob, "places");
+      uploadedPhotos.push({
+        place_id: place.id,
+        photo_url: photoUrl,
+        taken_at: visitedDate
+      });
+    }
+
+    if (uploadedPhotos.length > 0) {
+      const { error: photosError } = await supabaseClient.from("place_photos").insert(uploadedPhotos);
+      if (photosError) throw new Error("Place saved, but photo bundle could not be attached.");
+    }
+
+    resetPlaceForm();
+    await loadCloudState();
+  } catch (error) {
+    showMessage(error.message);
+  } finally {
+    setBusy(placeForm, false);
+  }
+});
+
+clearForm.addEventListener("click", resetMemoryForm);
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -396,8 +731,12 @@ loginForm.addEventListener("submit", async (event) => {
 logoutButton.addEventListener("click", lockApp);
 
 memoryDate.value = new Date().toISOString().slice(0, 10);
+scheduleDate.value = new Date().toISOString().slice(0, 10);
+placeDate.value = new Date().toISOString().slice(0, 10);
 updateCounter();
-renderPreview("");
+renderPreview(photoPreview, "", "No picture selected");
+renderPlacePreview();
+
 if (localStorage.getItem(AUTH_STORAGE_KEY) === "true") {
   unlockApp();
 } else {

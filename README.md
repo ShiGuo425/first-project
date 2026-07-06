@@ -10,6 +10,10 @@ https://shiguo425.github.io/first-project/
 
 - Shows how many days we have been together
 - Saves shared memories with a title, date, text, and picture
+- Tracks a shared wish list
+- Tracks plans for this year
+- Pins cities on China and global maps
+- Saves picture bundles for each pinned place
 - Uploads pictures to Supabase Storage
 - Stores shared memory content in Supabase
 - Includes a simple account/password login gate
@@ -35,6 +39,10 @@ The SQL creates:
 
 - `couple_settings`
 - `memories`
+- `wishlist`
+- `year_schedule`
+- `places`
+- `place_photos`
 - `memories` storage bucket
 - public read/write policies for the shared journal
 
@@ -43,8 +51,8 @@ The SQL creates:
 - `index.html` - page structure
 - `styles.css` - page design and responsive layout
 - `app.js` - login, day counter, Supabase upload, and timeline logic
+- `supabase-setup.sql` - Supabase database, storage, map, wish list, and schedule setup
 - `assets/memory-hero.png` - hero background image
-- `supabase-setup.sql` - Supabase database and storage setup
 
 ## Development
 
