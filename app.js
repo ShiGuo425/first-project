@@ -56,6 +56,10 @@ const placeNote = document.querySelector("#placeNote");
 const placePhotos = document.querySelector("#placePhotos");
 const placePhotoPreview = document.querySelector("#placePhotoPreview");
 const placesList = document.querySelector("#placesList");
+const imageViewer = document.querySelector("#imageViewer");
+const viewerImage = document.querySelector("#viewerImage");
+const viewerCaption = document.querySelector("#viewerCaption");
+const closeViewer = document.querySelector("#closeViewer");
 
 let refreshTimer = null;
 let chinaMap = null;
@@ -181,6 +185,30 @@ function createActionButton(label, className, onClick) {
   return button;
 }
 
+function openImageViewer(src, caption) {
+  viewerImage.src = src;
+  viewerImage.alt = caption || "Selected picture";
+  viewerCaption.textContent = caption || "";
+  imageViewer.classList.add("is-open");
+  imageViewer.setAttribute("aria-hidden", "false");
+}
+
+function closeImageViewer() {
+  imageViewer.classList.remove("is-open");
+  imageViewer.setAttribute("aria-hidden", "true");
+  viewerImage.removeAttribute("src");
+  viewerCaption.textContent = "";
+}
+
+function makeViewableImage(src, alt, caption) {
+  const image = document.createElement("img");
+  image.src = src;
+  image.alt = alt;
+  image.title = "Double click to view";
+  image.addEventListener("dblclick", () => openImageViewer(src, caption || alt));
+  return image;
+}
+
 function renderTimeline() {
   timeline.innerHTML = "";
   emptyState.classList.toggle("is-hidden", state.memories.length > 0);
@@ -199,9 +227,7 @@ function renderTimeline() {
       const photo = document.createElement("div");
       photo.className = "memory-photo";
       if (memory.photo) {
-        const image = document.createElement("img");
-        image.src = memory.photo;
-        image.alt = memory.title;
+        const image = makeViewableImage(memory.photo, memory.title, `${memory.title} · ${formatDate(memory.date)}`);
         photo.append(image);
       }
 
@@ -328,9 +354,7 @@ function renderPlaces() {
     const gallery = document.createElement("div");
     gallery.className = "place-gallery";
     place.photos.forEach((photo) => {
-      const image = document.createElement("img");
-      image.src = photo.photoUrl;
-      image.alt = `${place.city} memory`;
+      const image = makeViewableImage(photo.photoUrl, `${place.city} memory`, `${place.city} · ${formatDate(photo.takenAt || place.visitedDate)}`);
       gallery.append(image);
     });
 
@@ -768,6 +792,15 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutButton.addEventListener("click", lockApp);
+closeViewer.addEventListener("click", closeImageViewer);
+imageViewer.addEventListener("click", (event) => {
+  if (event.target === imageViewer) closeImageViewer();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && imageViewer.classList.contains("is-open")) {
+    closeImageViewer();
+  }
+});
 
 memoryDate.value = new Date().toISOString().slice(0, 10);
 scheduleDate.value = new Date().toISOString().slice(0, 10);
