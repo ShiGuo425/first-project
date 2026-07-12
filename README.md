@@ -9,7 +9,8 @@ https://shiguo425.github.io/first-project/
 ## Features
 
 - Shows how many days we have been together
-- Saves shared memories with a title, date, text, and picture
+- Saves shared memories with optional title/text and one or many pictures
+- Allows photo-only memory uploads without writing a moment every time
 - Tracks a shared wish list
 - Tracks plans for this year
 - Pins cities on China and global maps
@@ -18,6 +19,17 @@ https://shiguo425.github.io/first-project/
 - Stores shared memory content in Supabase
 - Includes a simple account/password login gate
 - Refreshes shared memories automatically every 30 seconds
+- Opens uploaded pictures in a full-screen viewer with double click
+
+## How to Use
+
+1. Open the live site.
+2. Log in with the shared account number and password.
+3. Set the first day together to update the day counter.
+4. Use the memory form to upload one or many pictures.
+5. Optionally add a title and story.
+6. Double click any uploaded picture to view it larger.
+7. Add wishes, yearly plans, and travel pins as needed.
 
 ## Login
 
