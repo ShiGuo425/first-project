@@ -51,7 +51,7 @@
           <div class="field-row">
             <label>
               <span>Moment title</span>
-              <input id="memoryTitle" type="text" maxlength="60" placeholder="A small perfect afternoon" required />
+              <input id="memoryTitle" type="text" maxlength="60" placeholder="Optional: a small perfect afternoon" />
             </label>
             <label>
               <span>Date</span>
@@ -61,17 +61,17 @@
 
           <label>
             <span>What happened</span>
-            <textarea id="memoryText" maxlength="900" placeholder="Write the little details you never want to forget..." required></textarea>
+            <textarea id="memoryText" maxlength="900" placeholder="Optional: write the little details you never want to forget..."></textarea>
           </label>
 
           <div class="upload-row">
             <label class="upload-box">
-              <input id="photoInput" type="file" accept="image/*" />
+              <input id="photoInput" type="file" accept="image/*" multiple />
               <span class="upload-icon">+</span>
-              <span>Add a picture</span>
+              <span>Add pictures</span>
             </label>
-            <div id="photoPreview" class="photo-preview" aria-live="polite">
-              <span>No picture selected</span>
+            <div id="photoPreview" class="photo-preview multi-preview" aria-live="polite">
+              <span>No pictures selected</span>
             </div>
           </div>
 

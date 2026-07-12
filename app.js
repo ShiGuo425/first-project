@@ -11,8 +11,7 @@ const state = {
   wishes: [],
   plans: [],
   places: [],
-  draftPhoto: "",
-  draftBlob: null,
+  draftPhotos: [],
   placeDraftPhotos: []
 };
 
@@ -173,6 +172,23 @@ function renderPlacePreview() {
     image.src = photo.preview;
     image.alt = "Selected place photo";
     placePhotoPreview.append(image);
+  });
+}
+
+function renderMemoryPreview() {
+  photoPreview.innerHTML = "";
+  if (state.draftPhotos.length === 0) {
+    const empty = document.createElement("span");
+    empty.textContent = "No pictures selected";
+    photoPreview.append(empty);
+    return;
+  }
+
+  state.draftPhotos.forEach((photo) => {
+    const image = document.createElement("img");
+    image.src = photo.preview;
+    image.alt = "Selected memory photo";
+    photoPreview.append(image);
   });
 }
 
@@ -368,9 +384,8 @@ function renderPlaces() {
 function resetMemoryForm() {
   memoryForm.reset();
   memoryDate.value = new Date().toISOString().slice(0, 10);
-  state.draftPhoto = "";
-  state.draftBlob = null;
-  renderPreview(photoPreview, "", "No picture selected");
+  state.draftPhotos = [];
+  renderMemoryPreview();
 }
 
 function resetPlaceForm() {
@@ -636,18 +651,15 @@ startDateInput.addEventListener("change", () => {
 });
 
 photoInput.addEventListener("change", async () => {
-  const file = photoInput.files[0];
-  if (!file) {
-    state.draftPhoto = "";
-    state.draftBlob = null;
-    renderPreview(photoPreview, "", "No picture selected");
+  const files = Array.from(photoInput.files || []).slice(0, 24);
+  if (files.length === 0) {
+    state.draftPhotos = [];
+    renderMemoryPreview();
     return;
   }
 
-  const resized = await resizeImage(file);
-  state.draftPhoto = resized.preview;
-  state.draftBlob = resized.blob;
-  renderPreview(photoPreview, state.draftPhoto, "No picture selected");
+  state.draftPhotos = await Promise.all(files.map(resizeImage));
+  renderMemoryPreview();
 });
 
 placePhotos.addEventListener("change", async () => {
@@ -659,21 +671,40 @@ placePhotos.addEventListener("change", async () => {
 memoryForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const title = memoryTitle.value.trim();
+  const title = memoryTitle.value.trim() || "Photo memory";
   const date = memoryDate.value;
   const text = memoryText.value.trim();
 
-  if (!title || !date || !text || !supabaseClient) return;
+  if (!date || !supabaseClient) return;
+  if (!text && state.draftPhotos.length === 0) {
+    showMessage("Choose at least one picture, or write something before saving.");
+    return;
+  }
 
   setBusy(memoryForm, true);
   try {
-    const photoUrl = await uploadPhoto(state.draftBlob);
-    const { error } = await supabaseClient.from("memories").insert({
-      title,
-      memory_date: date,
-      body: text,
-      photo_url: photoUrl || null
-    });
+    const rows = [];
+
+    if (state.draftPhotos.length > 0) {
+      for (const photo of state.draftPhotos) {
+        const photoUrl = await uploadPhoto(photo.blob);
+        rows.push({
+          title,
+          memory_date: date,
+          body: text,
+          photo_url: photoUrl
+        });
+      }
+    } else {
+      rows.push({
+        title,
+        memory_date: date,
+        body: text,
+        photo_url: null
+      });
+    }
+
+    const { error } = await supabaseClient.from("memories").insert(rows);
 
     if (error) throw new Error("Could not save this memory. Check Supabase table policies.");
 
@@ -806,7 +837,7 @@ memoryDate.value = new Date().toISOString().slice(0, 10);
 scheduleDate.value = new Date().toISOString().slice(0, 10);
 placeDate.value = new Date().toISOString().slice(0, 10);
 updateCounter();
-renderPreview(photoPreview, "", "No picture selected");
+renderMemoryPreview();
 renderPlacePreview();
 
 if (localStorage.getItem(AUTH_STORAGE_KEY) === "true") {
